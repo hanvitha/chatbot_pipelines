@@ -1,0 +1,98 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: simple-model-s2i
+spec:
+  inputs:
+    resources:
+      - name: source
+        type: git
+    params:
+      - name: BUILDER_IMAGE
+        description: The location of s2i builder image
+        default: "quay.io/willbenton/simple-model-s2i:cached-pipeline-s2i"
+      - name: PATH_CONTEXT
+        description: The location of the path to run s2i from.
+        default: .
+      - name: TLSVERIFY
+        description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)
+        default: "true"
+      - name: LOGLEVEL
+        description: Log level when running S2I binary
+        default: '0'
+      - name: S2I_SOURCE_NOTEBOOK_LIST
+        default: "notebook names seperated by ,"
+  outputs:
+    resources:
+      - name: image
+        type: image
+  steps:
+    - name: generate
+      image: quay.io/openshift-pipeline/s2i:nightly
+      workingdir: /workspace/source
+      command:
+        - /usr/local/bin/s2i
+        - --loglevel=$(inputs.params.LOGLEVEL)
+        - build
+        - -e S2I_SOURCE_NOTEBOOK_LIST=$(inputs.params.S2I_SOURCE_NOTEBOOK_LIST)
+        - $(inputs.params.PATH_CONTEXT)
+        - $(inputs.params.BUILDER_IMAGE)
+        - --as-dockerfile
+        - /gen-source/Dockerfile.gen
+      volumeMounts:
+        - name: gen-source
+          mountPath: /gen-source
+      resources:
+        limits:
+          cpu: 500m
+          memory: 1Gi
+        requests:
+          cpu: 500m
+          memory: 1Gi
+    - name: build
+      image: quay.io/buildah/stable
+      workingdir: /gen-source
+      command: 
+        - buildah
+        - bud
+        - --tls-verify=$(inputs.params.TLSVERIFY)
+        - --layers
+        - -f
+        - /gen-source/Dockerfile.gen
+        - -t
+        - $(outputs.resources.image.url)
+        - .
+      volumeMounts:
+        - name: varlibcontainers
+          mountPath: /var/lib/containers
+        - name: gen-source
+          mountPath: /gen-source
+      resources:
+        limits:
+          cpu: 500m
+          memory: 1Gi
+        requests:
+          cpu: 500m
+          memory: 1Gi
+      securityContext:
+        privileged: true
+    - name: push
+      image: quay.io/buildah/stable
+      command: ['buildah', 'push', '--tls-verify=$(inputs.params.TLSVERIFY)', '$(outputs.resources.image.url)', 'docker://$(outputs.resources.image.url)']
+      volumeMounts:
+        - name: varlibcontainers
+          mountPath: /var/lib/containers
+      resources:
+        limits:
+          cpu: 500m
+          memory: 1Gi
+        requests:
+          cpu: 500m
+          memory: 1Gi
+      securityContext:
+        privileged: true
+  volumes:
+    - name: varlibcontainers
+      emptyDir: {}
+    - name: gen-source
+      emptyDir: {}

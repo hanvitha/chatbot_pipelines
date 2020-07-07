@@ -1,0 +1,36 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Pipeline
+metadata:
+  name: deploy-model-pipeline
+  labels:
+    app: inflightassistance
+spec:
+  resources:
+  - name: model-git
+    type: git
+  - name: model-image
+    type: image
+  tasks:
+  - name: build
+    taskRef:
+      name: simple-model-s2i
+    params:
+      - name: TLSVERIFY
+        value: "false"
+      - name: BUILDER_IMAGE
+        value: quay.io/willbenton/simple-model-s2i:cached-pipeline-s2i
+      - name: S2I_SOURCE_NOTEBOOK_LIST
+        default: "chatbot_model.ipynb,chatbot_response.ipynb"
+    resources:
+      inputs:
+      - name: source
+        resource: model-git
+      outputs:
+      - name: image
+        resource: model-image
+  - name: deploy
+    taskRef:
+      name: openshift-client
+    runAfter:
+      - build
+    
