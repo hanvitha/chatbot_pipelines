@@ -21,7 +21,8 @@ spec:
         description: Log level when running S2I binary
         default: '0'
       - name: S2I_SOURCE_NOTEBOOK_LIST
-        default: "notebook names seperated by ,"
+        description: "notebook names seperated by ,"
+        default: "01_chatbot_data_preparation.ipynb,02_chatbot_model.ipynb"
   outputs:
     resources:
       - name: image
