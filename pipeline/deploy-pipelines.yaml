@@ -11,7 +11,7 @@ spec:
   - name: model-image
     type: image
   tasks:
-  - name: build
+  - name: build-model
     taskRef:
       name: simple-model-s2i
     params:
@@ -28,9 +28,11 @@ spec:
       outputs:
       - name: image
         resource: model-image
-  - name: deploy
+  - name: deploy-model
     taskRef:
       name: openshift-client
     runAfter:
       - build
-    
+    params:
+    - name: ARGS
+      value: "rollout latest chatbot-model"
