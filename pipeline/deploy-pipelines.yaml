@@ -32,7 +32,7 @@ spec:
     taskRef:
       name: openshift-client
     runAfter:
-      - build
+      - build-model
     params:
     - name: ARGS
       value: "rollout latest chatbot-model"
