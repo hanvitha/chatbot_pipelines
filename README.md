@@ -12,10 +12,7 @@ oc create -f resources/git-model-pipeline-resource.yaml
 oc create -f resources/image-model-pipeline-resource.yaml
 
 Once the pipeline resources are created, trigger the pipeline using cli or through console
-tkn pipeline start deploy-model-pipeline \
--r model-git=chatbot-model-git \
--r model-image=chatbot-model-image \
--s pipeline
+tkn pipeline start deploy-model-pipeline -r model-git=chatbot-model-git model-image=chatbot-model-image -s pipeline
 
 
 After running this command, command, the pipeline you created earlier is now running. Some pods get created to execute the tasks defined as part of the pipeline. After 4-5 minutes, the pipeline run should finish successfully.
